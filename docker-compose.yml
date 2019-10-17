@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  db:
+    container_name: GoFlowDB
+    image: postgres
+    hostname: db
+    environment:
+      DB_SERVER: db
+      DB_PORT: 5432
+      DB_NAME: tests
+      DB_USERNAME: cerdrifix
+      DB_PASSWORD: cerdrifix1234
+    ports:
+      - 8001:5432
+    networks:
+      - CerdriNet
+
+  web:
+    container_name: GoFlow
+    build: .
+    environment:
+      HTTPS_CERTIFICATE_FILE: certs/localhost.crt
+      HTTPS_CERTIFICATE_KEY: certs/localhost.key
+      DB_HOSTNAME: db
+      DB_PORT: 5432
+      DB_NAME: tests
+      DB_USERNAME: cerdrifix
+      DB_PASSWORD: cerdrifix1234
+      SERVER_ADDRESS: :8443
+    networks:
+      - CerdriNet
+    volumes:
+      - .:/go/src/GoFlow
+    ports:
+      - 8444:8443
+    depends_on:
+      - db
+    links:
+      - db
+    labels:
+      kompose.service.type: loadBalancer
+
+networks:
+  CerdriNet:
+    driver: bridge
