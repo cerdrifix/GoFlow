@@ -53,4 +53,5 @@ func main() {
 
 func setupRoutes(mux *http.ServeMux, h *pages.Handler) {
 	mux.HandleFunc("/", h.Logger(h.Home))
+	mux.HandleFunc("/map", h.Logger(h.GetMapDetails))
 }

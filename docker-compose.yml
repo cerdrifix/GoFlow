@@ -8,7 +8,7 @@ services:
     environment:
       DB_SERVER: db
       DB_PORT: 5432
-      DB_NAME: tests
+      DB_NAME: GoFlow
       DB_USERNAME: cerdrifix
       DB_PASSWORD: cerdrifix1234
     ports:
@@ -24,7 +24,7 @@ services:
       HTTPS_CERTIFICATE_KEY: certs/localhost.key
       DB_HOSTNAME: db
       DB_PORT: 5432
-      DB_NAME: tests
+      DB_NAME: GoFlow
       DB_USERNAME: cerdrifix
       DB_PASSWORD: cerdrifix1234
       SERVER_ADDRESS: :8443
