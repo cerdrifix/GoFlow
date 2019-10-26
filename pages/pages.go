@@ -44,33 +44,20 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetMapDetails(w http.ResponseWriter, r *http.Request) {
-	var processMap engine.ProcessMap
-
-	const q = "SELECT * FROM public.fn_maps_getlatestbyname('richiesta_con_approvazione')"
-	//h.db.GetContext(r.Context(), &processMap, q)
-	rows, err := h.db.QueryxContext(r.Context(), q)
+func (h *Handler) CreateProcess(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var payload engine.CreateProcessPayload
+	err := decoder.Decode(&payload)
 	if err != nil {
-		h.logger.Fatalf("Unable to query db")
-	}
-	for rows.Next() {
-		var name string
-		var version int
-		var data string
-
-		err = rows.Scan(&name, &version, &data)
-		if err != nil {
-			h.logger.Fatalf("Error during row scan")
-		}
-
-		h.logger.Printf("\nMap name: %s\n    version: %d\n    data: %s", name, version, data)
-
-		err = json.Unmarshal([]byte(data), &processMap)
-		if err != nil {
-			h.logger.Fatalf("Error during unmarshaling \njson: %s\nerror: %v", data, err)
-		}
+		h.logger.Panicf("Error during payload parse: %v", err)
 	}
 
-	h.logger.Printf("Json parsed: %#v", processMap)
+	eng := engine.New(h.logger, h.db, r.Context())
 
+	i, err := eng.NewInstance(payload)
+	if err != nil {
+		h.logger.Fatalf("Error retrieving map from database: %v", err)
+	}
+
+	h.logger.Printf("\nPayload: %#v\nInstance#: %d", payload, i)
 }
