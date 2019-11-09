@@ -1,0 +1,8 @@
+DO $$
+DECLARE
+	data json := '{"name":"richiesta_con_approvazione","description":"Richiesta con approvazione","nodes":[{"name":"start_1","type":"start","events":{"pre":[],"post":[{"type":"handler","name":"copyVariable","parameters":[{"name":"srcVariable","type":"variable","value":"DSC_NOME"},{"name":"dstVariable","type":"variable","value":"NOMINATIVO"}]}]},"triggers":[{"name":"auto","after":{"unit":"seconds","value":0},"events":[{"type":"transaction","name":"start_to_task_approvativo"}]}],"transactions":[{"name":"start_to_task_approvativo","description":"Eseguito","to":"task_approvativo","events":{"pre":[],"post":[]}}]},{"name":"task_approvativo","type":"task","events":{"pre":[],"post":[]},"triggers":[{"name":"auto_approve","timeSpan":{"unit":"days","value":10},"events":[{"type":"transaction","name":"task_approvativo_cancel"}]}],"transactions":[{"name":"task_approvativo_ok","description":"Approva","visible":true,"to":"end_ok","events":{"pre":[],"post":[]}},{"name":"task_approvativo_ko","description":"Rifiuta","visible":true,"to":"end_ko","events":{"pre":[],"post":[]}},{"name":"task_approvativo_cancel","description":"Annulla","visible":false,"to":"end_canceled","events":{"pre":[],"post":[]}}]},{"name":"end_ok","type":"end","description":"Richiesta terminata con successo"},{"name":"end_ko","type":"end","description":"Richiesta rifiutata"},{"name":"end_canceled","type":"end","description":"Richiesta annullata da sistema (tempo massimo raggiunto)"}]}';
+BEGIN
+
+	call sp_map_insert(data);
+
+END $$;

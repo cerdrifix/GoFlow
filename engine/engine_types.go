@@ -37,7 +37,7 @@ type ProcessTrigger struct {
 
 type ProcessNode struct {
 	Name     string               `json:"name"`
-	NodeType string               `json:"version"`
+	NodeType string               `json:"type"`
 	Events   ProcessEventsPrePost `json:"events"`
 }
 
