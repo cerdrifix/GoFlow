@@ -1,5 +1,7 @@
 package engine
 
+import "github.com/google/uuid"
+
 type ProcessParameter struct {
 	Name          string `json:"name"`
 	ParameterType string `json:"type"`
@@ -42,6 +44,7 @@ type ProcessNode struct {
 }
 
 type ProcessMap struct {
+	Id          uuid.UUID     `json:"id"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Nodes       []ProcessNode `json:"nodes"`

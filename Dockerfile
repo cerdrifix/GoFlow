@@ -5,6 +5,7 @@ RUN mkdir -p /certs
 RUN mkdir -p /go/src/GoFlow
 
 RUN apk add --no-cache git ca-certificates
+RUN go get github.com/google/uuid
 RUN go get github.com/jmoiron/sqlx
 RUN go get github.com/lib/pq
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"log"
 	"sync"
@@ -35,26 +36,27 @@ func (engine *ProcessEngine) GetProcessMap(name string) (processMap ProcessMap, 
 		return processMap, err
 	}
 	for rows.Next() {
+		var id uuid.UUID
 		var name string
 		var version int
 		var data string
 
-		err = rows.Scan(&name, &version, &data)
+		err = rows.Scan(&id, &name, &version, &data)
 		if err != nil {
 			engine.logger.Printf("Error during row scan")
 			return processMap, err
 		}
 
-		engine.logger.Printf("\nMap name: %s\n    version: %d\n    data: %s", name, version, data)
+		engine.logger.Printf("\nMap id: %s\n    name: %s\n    version: %d\n    data: %s", id, name, version, data)
 
 		err = json.Unmarshal([]byte(data), &processMap)
 		if err != nil {
 			engine.logger.Printf("Error during unmarshaling \njson: %s\nerror: %v", data, err)
 			return processMap, err
 		}
-	}
 
-	engine.logger.Printf("Json parsed: %#v", processMap)
+		processMap.Id = id
+	}
 	return processMap, nil
 }
 
@@ -200,7 +202,11 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 
 	j, err := transformVariablesInJSONPayload(payload.Variables)
 
-	fmt.Printf("JSON Variables: %s", string(j))
+	fmt.Printf("Creating instance with:\n"+
+		"  map_id: %s\n"+
+		"  start_node: %s\n"+
+		"  variables: %s",
+		pmap.Id, startNode.Name, string(j))
 
 	tx.Commit()
 
