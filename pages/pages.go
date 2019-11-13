@@ -3,6 +3,7 @@ package pages
 import (
 	"GoFlow/engine"
 	"encoding/json"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"log"
 	"net/http"
@@ -54,10 +55,17 @@ func (h *Handler) CreateProcess(w http.ResponseWriter, r *http.Request) {
 
 	eng := engine.New(h.logger, h.db, r.Context())
 
-	i, err := eng.NewInstance(payload)
-	if err != nil {
-		h.logger.Fatalf("Error retrieving map from database: %v", err)
+	i, errs := eng.NewInstance(payload)
+	if errs != nil {
+		h.logger.Printf("%v", err)
+		w.WriteHeader(500)
+		for _, _err := range errs {
+			w.Write([]byte(fmt.Sprintf("\n %s", _err.Error())))
+		}
+		return
 	}
 
 	h.logger.Printf("\nPayload: %#v\nInstance#: %d", payload, i)
+	w.WriteHeader(200)
+	w.Write([]byte(fmt.Sprintf("Processo creato correttamente. ID: %s", i)))
 }

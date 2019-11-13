@@ -24,7 +24,7 @@ var (
 
 func main() {
 
-	logger := log.New(os.Stdout, "cfx | ", log.Lshortfile|log.LstdFlags)
+	logger := log.New(os.Stdout, "\ncfx | ", log.Lshortfile|log.LstdFlags)
 
 	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", DbUsername, DbPassword, DbHostname, DbPort, DbName))
 	if err != nil {

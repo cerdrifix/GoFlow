@@ -1,13 +1,18 @@
--- Table: public.maps
-
-
+-- Extension: "uuid-ossp"
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+    SCHEMA public
+    VERSION "1.1";
+	
+-- Cleaning tables	
 DROP TABLE IF EXISTS public.variables;
+DROP TABLE IF EXISTS public.variables_type;
 DROP TABLE IF EXISTS public.instances CASCADE;
 DROP TABLE IF EXISTS public.states CASCADE;
 DROP TABLE IF EXISTS public.users;
 DROP TABLE IF EXISTS public.maps;
 
 
+-- Table: public.maps
 CREATE TABLE IF NOT EXISTS public.maps
 (
     id uuid NOT NULL DEFAULT uuid_generate_v1mc(),
@@ -36,7 +41,7 @@ CREATE TABLE public.users
 );
 
 ALTER TABLE public.users
-    OWNER to postgres;
+    OWNER to cerdrifix;
 
 -- Table: instances
 
@@ -51,7 +56,7 @@ CREATE TABLE public.instances
 );
 
 ALTER TABLE public.instances
-    OWNER to postgres;
+    OWNER to cerdrifix;
 
 -- Table: public.states
 
@@ -68,10 +73,22 @@ CREATE TABLE public.states
 ) TABLESPACE pg_default;
 
 ALTER TABLE public.states
-    OWNER to postgres;
+    OWNER to cerdrifix;
+
+
+-- Table: public.variables_type
+CREATE TABLE public.variables_type
+(
+    name character varying(255) NOT NULL,
+    type character varying(64) NOT NULL,
+    CONSTRAINT variables_type_pk PRIMARY KEY (name)
+);
+
+ALTER TABLE public.variables_type
+    OWNER to cerdrifix;
+
 
 -- Table: public.variables
-
 CREATE TABLE public.variables
 (
     state_id uuid NOT NULL,
@@ -82,7 +99,7 @@ CREATE TABLE public.variables
 ) TABLESPACE pg_default;
 
 ALTER TABLE public.variables
-    OWNER to postgres;
+    OWNER to cerdrifix;
 	
 ------ Constraints
 ALTER TABLE public.instances
@@ -118,6 +135,12 @@ ADD CONSTRAINT states_fk_users_owner FOREIGN KEY (owner_id)
 ALTER TABLE public.variables
 ADD CONSTRAINT variables_fk_states FOREIGN KEY (state_id)
         REFERENCES public.states (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION;
+
+ALTER TABLE public.variables
+ADD CONSTRAINT variables_fk_variables_type FOREIGN KEY (name)
+        REFERENCES public.variables_type (name) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION;
 
@@ -180,6 +203,9 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+GRANT EXECUTE ON FUNCTION public.fn_maps_getlatestbyname(character varying) TO cerdrifix;
+
+
 -- Procedure sp_maps_getbynameandversion
 DROP FUNCTION fn_maps_getbynameandversion;
 
@@ -207,7 +233,10 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
--- Procedure sp_map_insert
+GRANT EXECUTE ON FUNCTION public.fn_maps_getbynameandversion(character varying, integer) TO cerdrifix;
+
+
+-- Procedure sp_user_insert
 CREATE OR REPLACE PROCEDURE sp_user_insert (
     username varchar(64),
 	name varchar(255),
@@ -226,10 +255,11 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+GRANT EXECUTE ON PROCEDURE public.sp_user_insert(character varying, character varying, character varying, character varying) TO cerdrifix;
 
--- Procedure sp_instance_new
 
-CREATE OR REPLACE FUNCTION public.sp_instance_new(
+-- Procedure fn_instance_new
+CREATE OR REPLACE FUNCTION public.fn_instance_new(
 	map_id uuid,
 	start_node varchar(255),
 	creator_id varchar(64),
@@ -239,8 +269,9 @@ RETURNS uuid AS $inst_id$
 DECLARE
 	inst_id uuid;
 	stat_id uuid;
-	_key text;
+	_key varchar(255);
 	_value json;
+	_type varchar(64);
 BEGIN
 
 	-- Creating instance
@@ -268,10 +299,18 @@ BEGIN
     FOR _key, _value IN
        SELECT * FROM json_each(variables)
     LOOP
-       RAISE NOTICE 'Adding variable %: % (%)', _key, _value->'v', _value->'t';
+		SELECT 	type INTO _type
+		FROM 	public.variables_type 
+		WHERE 	name = _key;
+		
+		IF _type IS NULL THEN
+			RAISE EXCEPTION 'Errore! La variabile % non e'' definita', _key;
+		END IF;
+		
+		RAISE NOTICE 'Adding variable %: % (%)', _key, _value, _type;
 	   
-	   INSERT INTO public.variables (state_id, name, data_type, data_value)
-	   VALUES (stat_id, _key, _value->'t', _value->'v');
+		INSERT INTO public.variables (state_id, name, data_type, data_value)
+		VALUES (stat_id, _key, _type, _value);
 	   
     END LOOP;
 	
@@ -279,6 +318,8 @@ BEGIN
 	
 END;
 $inst_id$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION public.fn_instance_new(uuid, character varying, character varying, json) TO cerdrifix;
 
 
 DO $$
@@ -289,5 +330,12 @@ DO $$
         call sp_map_insert(data);
 		
 		call sp_user_insert('cerdrifix', 'Davide', 'Ceretto', 'ceretto.davide@gmail.com');
+		
+		INSERT INTO public.variables_type ( name, type )
+		VALUES 	( 'nome', 'string' ),
+				( 'cognome', 'string' ),
+				( 'dataCreazione', 'datetime' ),
+				( 'testoRichiesta', 'string' ),
+				( 'NOMINATIVO', 'string' );
 
     END $$;

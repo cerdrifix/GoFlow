@@ -125,18 +125,25 @@ func doProcessEvent(e ProcessEvent, variables *map[string]interface{}, engine *P
 	return nil
 }
 
-func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instanceNumber int, err error) {
+func (engine *ProcessEngine) raiseError(message string, err error) []error {
+	tErr := fmt.Errorf("%s: %v", message, err)
+	engine.logger.Printf(tErr.Error())
+	errs := make([]error, 1)
+	errs[0] = err
+	return errs
+}
+
+func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instanceNumber uuid.UUID, errs []error) {
 
 	tx, err := engine.db.Beginx()
 	if err != nil {
-		engine.logger.Fatalf("Error beginning transaction: %v", err)
-		return 0, err
+		return uuid.Nil, engine.raiseError("Error beginning transaction", err)
 	}
 
 	pmap, err := engine.GetProcessMap(payload.ProcessName)
 	if err != nil {
 		tx.Rollback()
-		engine.logger.Fatalf("Error retrieving map from database: %v", err)
+		return uuid.Nil, engine.raiseError("Error retrieving map from database", err)
 	}
 	fmt.Printf("Map: %#v", pmap)
 
@@ -155,7 +162,7 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 
 	if found == false {
 		tx.Rollback()
-		engine.logger.Fatalf("Error retrieving start node")
+		return uuid.Nil, engine.raiseError("Error retrieving start node", nil)
 	}
 
 	engine.logger.Printf("Start node found! %#v", startNode)
@@ -166,7 +173,7 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 
 	var eventsWG sync.WaitGroup
 	eventsWG.Add(len(pre))
-	errs := make([]error, 0, len(pre)+len(post))
+	errs = make([]error, 0, len(pre)+len(post))
 
 	for _, ev := range pre {
 		go func() {
@@ -181,7 +188,7 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 	if len(errs) > 0 {
 		tx.Rollback()
 		engine.logger.Fatalf("Errors occured during pre-events: %#v", errs)
-		return
+		return uuid.Nil, errs
 	}
 
 	eventsWG.Add(len(post))
@@ -196,8 +203,8 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 	eventsWG.Wait()
 
 	if len(errs) > 0 {
-		engine.logger.Fatalf("Errors occured during post-events: %#v", errs)
-		return
+		tx.Rollback()
+		return uuid.Nil, errs
 	}
 
 	j, err := transformVariablesInJSONPayload(payload.Variables)
@@ -208,7 +215,19 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 		"  variables: %s",
 		pmap.Id, startNode.Name, string(j))
 
+	creator := "cerdrifix"
+
+	q := fmt.Sprintf("SELECT public.fn_instance_new('%s', '%s', '%s', '%s')", pmap.Id, startNode.Name, creator, string(j))
+
+	engine.logger.Printf("q: %s", q)
+
+	err = engine.db.Get(&instanceNumber, q)
+	if err != nil {
+		tx.Rollback()
+		return uuid.Nil, engine.raiseError("Errors occured during instance creation", err)
+	}
+
 	tx.Commit()
 
-	return 0, nil
+	return instanceNumber, nil
 }
