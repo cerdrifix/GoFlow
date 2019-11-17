@@ -1,7 +1,18 @@
+-- CREATE ROLE cerdrifix WITH
+--   LOGIN
+--   PASSWORD 'cerdrifix1234'
+--   NOSUPERUSER
+--   INHERIT
+--   NOCREATEDB
+--   NOCREATEROLE
+--   NOREPLICATION;
+
+--CREATE DATABASE GoFlow;
+
 -- Extension: "uuid-ossp"
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
     SCHEMA public
-    VERSION "1.1";
+    VERSION '1.1';
 	
 -- Cleaning tables	
 DROP TABLE IF EXISTS public.variables;
@@ -147,7 +158,8 @@ ADD CONSTRAINT variables_fk_variables_type FOREIGN KEY (name)
 ------ Stored Procedures
 
 -- Procedure sp_map_insert
-CREATE OR REPLACE PROCEDURE sp_map_insert (
+
+CREATE OR REPLACE PROCEDURE public.sp_map_insert (
     _data json
 )
 AS
@@ -177,7 +189,7 @@ END
 $$ LANGUAGE plpgsql;
 
 -- Procedure sp_maps_getlatestbyname
-DROP FUNCTION fn_maps_getlatestbyname;
+DROP FUNCTION IF EXISTS fn_maps_getlatestbyname;
 
 CREATE FUNCTION fn_maps_getlatestbyname (
     _name varchar(255)
@@ -207,7 +219,7 @@ GRANT EXECUTE ON FUNCTION public.fn_maps_getlatestbyname(character varying) TO c
 
 
 -- Procedure sp_maps_getbynameandversion
-DROP FUNCTION fn_maps_getbynameandversion;
+DROP FUNCTION IF EXISTS fn_maps_getbynameandversion;
 
 CREATE OR REPLACE FUNCTION fn_maps_getbynameandversion (
     _name 		varchar(255),

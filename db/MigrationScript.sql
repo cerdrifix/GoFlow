@@ -16,7 +16,7 @@ DROP EXTENSION IF EXISTS "uuid-ossp";
 
 CREATE EXTENSION "uuid-ossp"
     SCHEMA public
-    VERSION "1.1";
+    VERSION '1.1';
 	
   
 -- Table: public.access_logs
