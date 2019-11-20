@@ -4,6 +4,7 @@
   "nodes": [
     {
       "name": "start_1",
+      "description": "Inizio",
       "type": "start",
       "events": {
         "pre": [
@@ -62,6 +63,7 @@
     },
     {
       "name": "task_approvativo",
+      "description": "Task di Approvazione",
       "type": "task",
       "events": {
         "pre": [],

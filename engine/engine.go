@@ -167,47 +167,15 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 
 	engine.logger.Printf("Start node found! %#v", startNode)
 
-	// Processing pre and post events
-	pre := startNode.Events.Pre
-	post := startNode.Events.Post
-
-	var eventsWG sync.WaitGroup
-	eventsWG.Add(len(pre))
-	errs = make([]error, 0, len(pre)+len(post))
-
-	for _, ev := range pre {
-		go func() {
-			err = doProcessEvent(ev, &payload.Variables, engine, &eventsWG)
-			if err != nil {
-				_ = append(errs, err)
-			}
-		}()
-	}
-	eventsWG.Wait()
-
-	if len(errs) > 0 {
-		tx.Rollback()
-		engine.logger.Fatalf("Errors occured during pre-events: %#v", errs)
-		return uuid.Nil, errs
-	}
-
-	eventsWG.Add(len(post))
-	for _, ev := range post {
-		go func() {
-			err = doProcessEvent(ev, &payload.Variables, engine, &eventsWG)
-			if err != nil {
-				errs[len(errs)] = err
-			}
-		}()
-	}
-	eventsWG.Wait()
-
-	if len(errs) > 0 {
-		tx.Rollback()
-		return uuid.Nil, errs
+	// Processing pre events
+	errors := engine.executeEvents(startNode.Events.Pre, &payload.Variables, tx)
+	if len(errors) > 0 {
+		return uuid.Nil, errors
 	}
 
 	j, err := transformVariablesInJSONPayload(payload.Variables)
+
+	go engine.startTriggers(startNode.Triggers, &payload.Variables)
 
 	fmt.Printf("Creating instance with:\n"+
 		"  map_id: %s\n"+
@@ -224,10 +192,38 @@ func (engine *ProcessEngine) NewInstance(payload CreateProcessPayload) (instance
 	err = engine.db.Get(&instanceNumber, q)
 	if err != nil {
 		tx.Rollback()
-		return uuid.Nil, engine.raiseError("Errors occured during instance creation", err)
+		return uuid.Nil, engine.raiseError("Errors occurred during instance creation", err)
 	}
 
 	tx.Commit()
 
 	return instanceNumber, nil
+}
+
+func (engine *ProcessEngine) startTriggers(triggers []ProcessTrigger, variables *map[string]interface{}) {
+	for _, trigger := range triggers {
+		engine.logger.Printf("Trigger: %#v", trigger)
+	}
+}
+
+func (engine *ProcessEngine) executeEvents(events []ProcessEvent, variables *map[string]interface{}, tx *sqlx.Tx) (errors []error) {
+	var eventsWG sync.WaitGroup
+	var err error
+	eventsWG.Add(len(events))
+	errors = make([]error, 0, len(events))
+	for _, ev := range events {
+		go func() {
+			err = doProcessEvent(ev, variables, engine, &eventsWG)
+			if err != nil {
+				_ = append(errors, err)
+			}
+		}()
+	}
+	eventsWG.Wait()
+	if len(errors) > 0 {
+		tx.Rollback()
+		engine.logger.Fatalf("Errors occured during pre-events: %#v", errors)
+		return errors
+	}
+	return nil
 }

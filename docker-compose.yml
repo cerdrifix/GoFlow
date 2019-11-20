@@ -16,6 +16,13 @@ services:
     networks:
       - CerdriNet
 
+  sched_db:
+    container_name: GoFlowSchedDB
+    image: timescale/timescaledb
+    hostname: sched_db
+    environment:
+      DB_SERVER: db
+
   web:
     container_name: GoFlow
     build: .

@@ -33,10 +33,6 @@ func (h *Handler) Logger(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	//_, err := h.db.ExecContext(r.Context(), fmt.Sprintf("call sp_access_logs_insert('%s')", "home"))
-	//if err != nil {
-	//	h.logger.Fatalf("Error calling sp_access_logs_insert: %v", err)
-	//}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(message + " " + time.Now().Format("2006-01-02 15:04:05.999999999")))
@@ -60,12 +56,12 @@ func (h *Handler) CreateProcess(w http.ResponseWriter, r *http.Request) {
 		h.logger.Printf("%v", err)
 		w.WriteHeader(500)
 		for _, _err := range errs {
-			w.Write([]byte(fmt.Sprintf("\n %s", _err.Error())))
+			_, _ = w.Write([]byte(fmt.Sprintf("\n %s", _err.Error())))
 		}
 		return
 	}
 
 	h.logger.Printf("\nPayload: %#v\nInstance#: %d", payload, i)
 	w.WriteHeader(200)
-	w.Write([]byte(fmt.Sprintf("Processo creato correttamente. ID: %s", i)))
+	_, _ = w.Write([]byte(fmt.Sprintf("Processo creato correttamente. ID: %s", i)))
 }

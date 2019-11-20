@@ -188,6 +188,8 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+alter procedure public.sp_map_insert(json) owner to cerdrifix;
+
 -- Procedure sp_maps_getlatestbyname
 DROP FUNCTION IF EXISTS fn_maps_getlatestbyname;
 
@@ -215,8 +217,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION public.fn_maps_getlatestbyname(character varying) TO cerdrifix;
-
+ALTER FUNCTION public.fn_maps_getlatestbyname(character varying) OWNER TO cerdrifix;
 
 -- Procedure sp_maps_getbynameandversion
 DROP FUNCTION IF EXISTS fn_maps_getbynameandversion;
@@ -245,7 +246,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION public.fn_maps_getbynameandversion(character varying, integer) TO cerdrifix;
+ALTER FUNCTION public.fn_maps_getbynameandversion(character varying, integer) OWNER TO cerdrifix;
 
 
 -- Procedure sp_user_insert
@@ -267,7 +268,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON PROCEDURE public.sp_user_insert(character varying, character varying, character varying, character varying) TO cerdrifix;
+ALTER PROCEDURE public.sp_user_insert(varchar, varchar, varchar, varchar) OWNER TO cerdrifix;
 
 
 -- Procedure fn_instance_new
@@ -331,12 +332,12 @@ BEGIN
 END;
 $inst_id$ LANGUAGE plpgsql;
 
-GRANT EXECUTE ON FUNCTION public.fn_instance_new(uuid, character varying, character varying, json) TO cerdrifix;
+ALTER FUNCTION public.fn_instance_new(uuid, character varying, character varying, json) OWNER TO cerdrifix;
 
 
 DO $$
     DECLARE
-        data json := '{"name":"richiesta_con_approvazione","description":"Richiesta con approvazione","nodes":[{"name":"start_1","type":"start","events":{"pre":[{"type":"validator","name":"CheckInputVariable","parameters":[{"name":"inputVariableName","type":"variable","value":"nome"}]}],"post":[{"type":"function","name":"CopyVariable","parameters":[{"name":"srcVariable","type":"variable","value":"nome"},{"name":"dstVariable","type":"variable","value":"NOMINATIVO"}]}]},"triggers":[{"name":"auto","after":{"unit":"seconds","value":0},"transaction":"start_to_task_approvativo"}],"transactions":[{"name":"start_to_task_approvativo","description":"Eseguito","to":"task_approvativo","events":{"pre":[],"post":[]}}]},{"name":"task_approvativo","type":"task","events":{"pre":[],"post":[]},"triggers":[{"name":"auto_approve","after":{"unit":"days","value":10},"transaction":"task_approvativo_cancel"}],"transactions":[{"name":"task_approvativo_ok","description":"Approva","visible":true,"to":"end_ok","events":{"pre":[],"post":[]}},{"name":"task_approvativo_ko","description":"Rifiuta","visible":true,"to":"end_ko","events":{"pre":[],"post":[]}},{"name":"task_approvativo_cancel","description":"Annulla","visible":false,"to":"end_canceled","events":{"pre":[],"post":[]}}]},{"name":"end_ok","type":"end","description":"Richiesta terminata con successo"},{"name":"end_ko","type":"end","description":"Richiesta rifiutata"},{"name":"end_canceled","type":"end","description":"Richiesta annullata da sistema (tempo massimo raggiunto)"}]}';
+        data json := '{"name":"richiesta_con_approvazione","description":"Richiesta con approvazione","nodes":[{"name":"start_1","description":"Inizio","type":"start","events":{"pre":[{"type":"validator","name":"CheckInputVariable","parameters":[{"name":"inputVariableName","type":"variable","value":"nome"}]}],"post":[{"type":"function","name":"CopyVariable","parameters":[{"name":"srcVariable","type":"variable","value":"nome"},{"name":"dstVariable","type":"variable","value":"NOMINATIVO"}]}]},"triggers":[{"name":"auto","after":{"unit":"seconds","value":0},"transaction":"start_to_task_approvativo"}],"transactions":[{"name":"start_to_task_approvativo","description":"Eseguito","to":"task_approvativo","events":{"pre":[],"post":[]}}]},{"name":"task_approvativo","description":"Task di Approvazione","type":"task","events":{"pre":[],"post":[]},"triggers":[{"name":"auto_approve","after":{"unit":"days","value":10},"transaction":"task_approvativo_cancel"}],"transactions":[{"name":"task_approvativo_ok","description":"Approva","visible":true,"to":"end_ok","events":{"pre":[],"post":[]}},{"name":"task_approvativo_ko","description":"Rifiuta","visible":true,"to":"end_ko","events":{"pre":[],"post":[]}},{"name":"task_approvativo_cancel","description":"Annulla","visible":false,"to":"end_canceled","events":{"pre":[],"post":[]}}]},{"name":"end_ok","type":"end","description":"Richiesta terminata con successo"},{"name":"end_ko","type":"end","description":"Richiesta rifiutata"},{"name":"end_canceled","type":"end","description":"Richiesta annullata da sistema (tempo massimo raggiunto)"}]}';
 	BEGIN
 
         call sp_map_insert(data);

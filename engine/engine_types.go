@@ -38,9 +38,11 @@ type ProcessTrigger struct {
 }
 
 type ProcessNode struct {
-	Name     string               `json:"name"`
-	NodeType string               `json:"type"`
-	Events   ProcessEventsPrePost `json:"events"`
+	Name         string               `json:"name"`
+	NodeType     string               `json:"type"`
+	Events       ProcessEventsPrePost `json:"events"`
+	Triggers     []ProcessTrigger     `json:"triggers"`
+	Transactions []ProcessTransaction `json:"transactions"`
 }
 
 type ProcessMap struct {
