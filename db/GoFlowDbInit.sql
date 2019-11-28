@@ -7,12 +7,14 @@
 --   NOCREATEROLE
 --   NOREPLICATION;
 
---CREATE DATABASE GoFlow;
 
+-- CREATE DATABASE GoFlow;
+-- alter database GoFlow owner to cerdrifix;
+-- 
 -- Extension: "uuid-ossp"
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
-    SCHEMA public
-    VERSION '1.1';
+-- CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+--     SCHEMA public
+--     VERSION '1.1';
 	
 -- Cleaning tables	
 DROP TABLE IF EXISTS public.variables;
@@ -191,9 +193,9 @@ $$ LANGUAGE plpgsql;
 alter procedure public.sp_map_insert(json) owner to cerdrifix;
 
 -- Procedure sp_maps_getlatestbyname
-DROP FUNCTION IF EXISTS fn_maps_getlatestbyname;
+DROP FUNCTION IF EXISTS public.fn_maps_getlatestbyname(varchar);
 
-CREATE FUNCTION fn_maps_getlatestbyname (
+CREATE FUNCTION public.fn_maps_getlatestbyname (
     _name varchar(255)
 )
     RETURNS TABLE (
@@ -217,7 +219,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
-ALTER FUNCTION public.fn_maps_getlatestbyname(character varying) OWNER TO cerdrifix;
+ALTER FUNCTION public.fn_maps_getlatestbyname(varchar) OWNER TO cerdrifix;
 
 -- Procedure sp_maps_getbynameandversion
 DROP FUNCTION IF EXISTS fn_maps_getbynameandversion;
@@ -333,6 +335,40 @@ END;
 $inst_id$ LANGUAGE plpgsql;
 
 ALTER FUNCTION public.fn_instance_new(uuid, character varying, character varying, json) OWNER TO cerdrifix;
+
+-- notify_event
+
+CREATE OR REPLACE FUNCTION notify_event() RETURNS TRIGGER AS $$
+DECLARE
+    data json;
+    notification json;
+BEGIN
+
+    -- Convert the old or new row to JSON, based on the kind of action.
+    -- Action = DELETE?             -> OLD row
+    -- Action = INSERT or UPDATE?   -> NEW row
+    IF (TG_OP = 'DELETE') THEN
+        data = row_to_json(OLD);
+    ELSE
+        data = row_to_json(NEW);
+    END IF;
+
+    -- Contruct the notification as a JSON string.
+    notification = json_build_object(
+            'table',TG_TABLE_NAME,
+            'action', TG_OP,
+            'data', data);
+
+
+    -- Execute pg_notify(channel, notification)
+    PERFORM pg_notify('events',notification::text);
+
+    -- Result is ignored since this is an AFTER trigger
+    RETURN NULL;
+END;
+
+$$ LANGUAGE plpgsql;
+
 
 
 DO $$
